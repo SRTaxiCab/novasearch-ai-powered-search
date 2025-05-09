@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NovaSearch - The AI-Powered Search Engine</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center px-4">
+  <header class="mb-12 text-center">
+    <h1 class="text-5xl font-extrabold text-gray-900 mb-2">NovaSearch</h1>
+    <p class="text-gray-600 text-lg max-w-xl mx-auto">Discover the web with the power of AI. Search smarter, get creative answers.</p>
+  </header>
+
+  <main class="w-full max-w-3xl">
+    <form id="searchForm" class="flex items-center space-x-4 mb-8" onsubmit="return false;">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search the web or ask something creative..."
+        class="flex-grow px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+        aria-label="Search input"
+        required
+      />
+      <button
+        id="searchButton"
+        type="submit"
+        class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center space-x-2"
+        aria-label="Search button"
+      >
+        <i class="fas fa-search"></i>
+        <span>Search</span>
+      </button>
+    </form>
+
+    <section id="results" class="bg-white rounded-lg shadow p-6 min-h-[150px]">
+      <p class="text-gray-500 italic" id="placeholderText">Enter a query and hit Search to explore.</p>
+    </section>
+  </main>
+
+  <footer class="mt-16 text-center text-gray-400 text-sm">
+    &copy; 2024 NovaSearch. Powered by imagination and AI.
+  </footer>
+
+  <script>
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const resultsSection = document.getElementById('results');
+    const placeholderText = document.getElementById('placeholderText');
+
+    async function fetchSearchResults(query) {
+      try {
+        const response = await fetch(\`/api/search?q=\${encodeURIComponent(query)}\`);
+        if (!response.ok) {
+          throw new Error('Search API error');
+        }
+        const data = await response.json();
+        return data.results || [];
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+    }
+
+    async function fetchAIResponse(query) {
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ q: query }),
+        });
+        if (!response.ok) {
+          throw new Error('AI generation API error');
+        }
+        const data = await response.json();
+        return data.response || '';
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+    }
+
+    function displayResults(searchResults, aiResponse) {
+      resultsSection.innerHTML = '';
+
+      if (!searchResults) {
+        resultsSection.innerHTML = '<p class="text-red-500">Failed to fetch search results. Please try again later.</p>';
+        return;
+      }
+
+      if (searchResults.length === 0) {
+        resultsSection.innerHTML = '<p class="text-gray-500 italic">No results found.</p>';
+      } else {
+        const resultsList = document.createElement('ul');
+        resultsList.className = 'list-disc list-inside space-y-2 text-gray-800';
+
+        searchResults.forEach((result) => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = result.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.className = 'text-blue-600 hover:underline';
+          a.textContent = result.name;
+          li.appendChild(a);
+
+          const snippet = document.createElement('p');
+          snippet.className = 'text-gray-600 text-sm';
+          snippet.textContent = result.snippet;
+          li.appendChild(snippet);
+
+          resultsList.appendChild(li);
+        });
+
+        resultsSection.appendChild(resultsList);
+      }
+
+      if (aiResponse) {
+        const separator = document.createElement('hr');
+        separator.className = 'my-6 border-gray-300';
+        resultsSection.appendChild(separator);
+
+        const creativeResponse = document.createElement('p');
+        creativeResponse.className = 'italic text-blue-700 text-lg';
+        creativeResponse.textContent = aiResponse;
+        resultsSection.appendChild(creativeResponse);
+      }
+    }
+
+    searchForm.addEventListener('submit', async () => {
+      const query = searchInput.value.trim();
+      if (!query) return;
+
+      resultsSection.innerHTML = '<p class="text-gray-500">Searching...</p>';
+
+      const [searchResults, aiResponse] = await Promise.all([
+        fetchSearchResults(query),
+        fetchAIResponse(query),
+      ]);
+
+      displayResults(searchResults, aiResponse);
+    });
+  </script>
+</body>
+</html>
